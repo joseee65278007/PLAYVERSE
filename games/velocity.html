@@ -128,26 +128,31 @@ for(let i=0;i<16;i++){const g=new THREE.Group();const can=new THREE.Mesh(new THR
 const key={};addEventListener('keydown',e=>{key[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyC')cameraMode=(cameraMode+1)%3;if(e.code==='KeyR')resetCar()});addEventListener('keyup',e=>key[e.code]=false);
 let speed=0,steer=0,nitro=0,coins=0,distance=0,cameraMode=0,started=false,last=performance.now(),toastTimer;
 const $=id=>document.getElementById(id);
-function resetCar(){chassisBody.setTranslation({x:0,y:.78,z:4},true);chassisBody.setRotation({x:0,y:0,z:0,w:1},true);chassisBody.setLinvel({x:0,y:0,z:0},true);chassisBody.setAngvel({x:0,y:0,z:0},true);speed=0;steer=0}
+function resetCar(){car.position.set(0,.78,4);car.rotation.set(0,0,0);chassisBody.setTranslation({x:0,y:.78,z:4},true);chassisBody.setRotation({x:0,y:0,z:0,w:1},true);chassisBody.setLinvel({x:0,y:0,z:0},true);chassisBody.setAngvel({x:0,y:0,z:0},true);speed=0;steer=0}
 function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
 $('start').onclick=()=>{$('intro').classList.add('hidden');started=true;last=performance.now()};
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;if(started){
- const accel=key.ArrowUp||key.KeyW,brake=key.ArrowDown||key.KeyS,left=key.ArrowLeft||key.KeyA,right=key.ArrowRight||key.KeyD,boost=(key.ShiftLeft||key.ShiftRight)&&nitro>0&&speed>18;
- const target=(left?-1:0)+(right?1:0);steer=THREE.MathUtils.damp(steer,target,4.2,dt);
- const rot=chassisBody.rotation();const yaw=new THREE.Quaternion(rot.x,rot.y,rot.z,rot.w);const forward=new THREE.Vector3(0,0,-1).applyQuaternion(yaw);const velocity=chassisBody.linvel();const forwardSpeed=velocity.x*forward.x+velocity.z*forward.z;
- if(accel)chassisBody.applyImpulse({x:forward.x*25*dt,z:forward.z*25*dt,y:0},true);
- if(brake)chassisBody.applyImpulse({x:-forward.x*(forwardSpeed>=0?42:18)*dt,z:-forward.z*(forwardSpeed>=0?42:18)*dt,y:0},true);
- if(boost){chassisBody.applyImpulse({x:forward.x*36*dt,z:forward.z*36*dt,y:0},true);nitro=Math.max(0,nitro-26*dt)}
- const maxSpeed=boost?48:36;const vNow=chassisBody.linvel();const flatSpeed=Math.hypot(vNow.x,vNow.z);if(flatSpeed>maxSpeed){const scale=maxSpeed/flatSpeed;chassisBody.setLinvel({x:vNow.x*scale,y:vNow.y,z:vNow.z*scale},true)}
- const steerRate=THREE.MathUtils.clamp(Math.abs(forwardSpeed)/8,0,1);chassisBody.setAngvel({x:0,y:-steer*1.9*steerRate,z:0},true);
- const side=new THREE.Vector3(1,0,0).applyQuaternion(yaw);const lateral=vNow.x*side.x+vNow.z*side.z;chassisBody.applyImpulse({x:-side.x*lateral*.10,z:-side.z*lateral*.10,y:0},true);
- physicsWorld.timestep=dt;physicsWorld.step();impactCooldown=Math.max(0,impactCooldown-dt);const postVel=chassisBody.linvel();const impactSpeed=Math.hypot(postVel.x,postVel.z);if(impactSpeed<previousImpactSpeed-5&&previousImpactSpeed>12&&impactCooldown<=0){const hitPos=new THREE.Vector3(car.position.x,car.position.y+.35,car.position.z);burstSparks(hitPos,new THREE.Vector3(postVel.x,0,postVel.z));impactCooldown=.55}previousImpactSpeed=impactSpeed;const pos=chassisBody.translation();const rotNow=chassisBody.rotation();car.position.set(pos.x,pos.y-.78,pos.z);car.quaternion.set(rotNow.x,rotNow.y,rotNow.z,rotNow.w);
- const actualVel=chassisBody.linvel();speed=Math.hypot(actualVel.x,actualVel.z);distance+=speed*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.28});sparks.forEach(p=>{if(p.life>0){p.life-=dt;p.vel.y-=12*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.visible=p.life>0}});
- pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;$('coins').textContent=coins;toast()}});
- if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
- $('speed').textContent=Math.round(Math.abs(speed)*3.6);$('distance').textContent=Math.floor(distance)+' m';$('nitro').style.width=nitro+'%';$('nitroText').textContent=Math.round(nitro)+'%';
- }
- const target=new THREE.Vector3(car.position.x*.65,car.position.y+1.9,car.position.z+5.7);const camPos=cameraMode===0?new THREE.Vector3(car.position.x*.55,car.position.y+5.0,car.position.z+10.8):cameraMode===1?new THREE.Vector3(car.position.x,car.position.y+1.65,car.position.z-.2):new THREE.Vector3(car.position.x*.35,car.position.y+13,car.position.z+18);
+  // Direct arcade movement keeps driving responsive even if physics timing varies.
+  const accel=key.ArrowUp||key.KeyW,brake=key.ArrowDown||key.KeyS,left=key.ArrowLeft||key.KeyA,right=key.ArrowRight||key.KeyD,boost=(key.ShiftLeft||key.ShiftRight)&&nitro>0&&speed>18;
+  if(accel)speed=Math.min(speed+(boost?34:22)*dt,boost?48:36);else speed=Math.max(0,speed-5.5*dt);
+  if(brake)speed=Math.max(-7,speed-34*dt);
+  const targetSteer=(left?-1:0)+(right?1:0);steer=THREE.MathUtils.damp(steer,targetSteer,4.2,dt);
+  if(boost){nitro=Math.max(0,nitro-26*dt);speed=Math.min(speed,48)}
+  car.rotation.y += -steer*THREE.MathUtils.clamp(Math.abs(speed)/12,0,1)*1.65*dt;
+  car.position.x += -Math.sin(car.rotation.y)*speed*dt;
+  car.position.z -= Math.cos(car.rotation.y)*speed*dt;
+  car.position.x=THREE.MathUtils.clamp(car.position.x,-7.6,7.6);
+  chassisBody.setTranslation({x:car.position.x,y:.78,z:car.position.z},true);
+  chassisBody.setRotation({x:0,y:Math.sin(car.rotation.y/2),z:0,w:Math.cos(car.rotation.y/2)},true);
+  chassisBody.setLinvel({x:-Math.sin(car.rotation.y)*speed,y:0,z:-Math.cos(car.rotation.y)*speed},true);
+  physicsWorld.timestep=dt;physicsWorld.step();
+  distance+=Math.abs(speed)*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.28});
+  sparks.forEach(p=>{if(p.life>0){p.life-=dt;p.vel.y-=12*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.visible=p.life>0}});
+  pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;$('coins').textContent=coins;toast()}});
+  if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
+  $('speed').textContent=Math.round(Math.abs(speed)*3.6);$('distance').textContent=Math.floor(distance)+' m';$('nitro').style.width=nitro+'%';$('nitroText').textContent=Math.round(nitro)+'%';
+  }
+  const target=new THREE.Vector3(car.position.x*.65,car.position.y+1.9,car.position.z+5.7);const camPos=cameraMode===0?new THREE.Vector3(car.position.x*.55,car.position.y+5.0,car.position.z+10.8):cameraMode===1?new THREE.Vector3(car.position.x,car.position.y+1.65,car.position.z-.2):new THREE.Vector3(car.position.x*.35,car.position.y+13,car.position.z+18);
  camera.position.lerp(camPos,.09);camera.lookAt(cameraMode===1?new THREE.Vector3(car.position.x,1.4,car.position.z-15):target);renderer.render(scene,camera)}
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65))});
