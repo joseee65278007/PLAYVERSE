@@ -51,7 +51,7 @@ const barrierMat=mat(0xb9c1bd,.48,.35);for(const x of [-9.5,9.5]){const rail=new
 // Original sculpted supercar: tapered body, low canopy, aero details and performance wheels.
 const car=new THREE.Group();scene.add(car);
 const chassisBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.78,4).setLinearDamping(.10).setAngularDamping(.72).setCcdEnabled(true));
-physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.98,.43,2.08).setDensity(680).setFriction(1.45).setRestitution(.12),chassisBody);
+physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.98,.43,2.08).setDensity(1.4).setFriction(1.45).setRestitution(.12),chassisBody);
 const paint=new THREE.MeshPhysicalMaterial({color:0x087f9d,metalness:.82,roughness:.19,clearcoat:1,clearcoatRoughness:.075,envMapIntensity:1.4});
 const carbon=new THREE.MeshStandardMaterial({color:0x080d10,metalness:.62,roughness:.32});
 const glass=new THREE.MeshPhysicalMaterial({color:0x071923,metalness:.42,roughness:.11,transparent:true,opacity:.94,clearcoat:1});
