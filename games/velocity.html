@@ -104,7 +104,7 @@ for(const x of [-.48,.48])box(car,.035,.025,1.25,carbon,x,1.24,-.02,0,0,x*.08);
 // Fixed rear wing with twin supports.
 for(const x of [-.62,.62])box(car,.07,.42,.08,carbon,x,.88,1.72,.12);
 box(car,2.0,.09,.42,carbon,0,1.10,1.75,-.08);
-const wheels=[];
+const wheels=[];const vehicleWheels=[];
 for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
  const pivot=new THREE.Group();pivot.position.set(x,.43,z);car.add(pivot);
  const tire=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.29,32),rubber);tire.rotation.z=Math.PI/2;tire.castShadow=true;pivot.add(tire);
@@ -131,6 +131,17 @@ let vehicleAnimations=[];
   model.position.x-=center.x;
   model.position.z-=center.z;
   model.position.y-=bounds.min.y;
+  // Build four real wheel pivots from the model's separately authored wheel/brake meshes.
+  for(const prefix of ['Front_Left','Front_Right','Rear_Left','Rear_Right']){
+   const parts=[];
+   model.traverse(o=>{if(o.isMesh&&o.name.startsWith(prefix+'_')&&!o.name.includes('Brake_Caliper'))parts.push(o)});
+   const tire=parts.find(o=>o.name.endsWith('_Tire'));
+   if(!tire)continue;
+   const wheelWorld=new THREE.Vector3();tire.getWorldPosition(wheelWorld);
+   const pivot=new THREE.Group();pivot.position.copy(model.worldToLocal(wheelWorld.clone()));model.add(pivot);
+   parts.forEach(part=>pivot.attach(part));
+   vehicleWheels.push({pivot,front:prefix.startsWith('Front')});
+  }
   model.traverse(o=>{
    if(o.isMesh){
     o.castShadow=!lowPower;
@@ -240,7 +251,7 @@ function animate(now){requestAnimationFrame(animate);const rawDt=(now-last)/1000
    if(turnNoticeTimer<=0)$('wrongWay').classList.add('hidden');
   }else if(Math.abs(heading)<.12){$('wrongWay').classList.add('hidden')}
   car.position.x=THREE.MathUtils.clamp(car.position.x,-7.6,7.6);
-    distance+=Math.abs(speed)*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=w.z<0?-steer*.32:0});
+    distance+=Math.abs(speed)*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=w.z<0?-steer*.32:0});vehicleWheels.forEach(w=>{w.pivot.rotation.z-=speed*dt/.405;if(w.front)w.pivot.rotation.y=-steer*.34});
   sparks.forEach(p=>{if(p.life>0){p.life-=dt;p.vel.y-=12*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.visible=p.life>0}});
   pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;try{localStorage.setItem('playverseCoins',String(coins))}catch(e){}$('coins').textContent=coins;toast()}});
   if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
