@@ -51,7 +51,7 @@ const barrierMat=mat(0xb9c1bd,.48,.35);for(const x of [-9.5,9.5]){const rail=new
 // Detailed original sports coupe assembly.
 const car=new THREE.Group();scene.add(car);
 const chassisBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.78,4).setLinearDamping(.18).setAngularDamping(2.2).setCcdEnabled(true));
-const chassisCollider=physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.42,2.12).setDensity(720).setFriction(1.35).setRestitution(.08),chassisBody);
+const chassisCollider=physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.7,2.12).setDensity(720).setFriction(1.35).setRestitution(.08),chassisBody);
 const paint=new THREE.MeshPhysicalMaterial({color:0x167f9b,metalness:.78,roughness:.24,clearcoat:1,clearcoatRoughness:.12});
 const dark=mat(0x101719,.28,.45),glass=new THREE.MeshPhysicalMaterial({color:0x13232a,metalness:.35,roughness:.12,transparent:true,opacity:.88,clearcoat:1}),rubber=mat(0x111315,.86),rim=new THREE.MeshStandardMaterial({color:0xb9c4c6,metalness:.92,roughness:.2});
 function box(parent,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
@@ -83,7 +83,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
  const maxSpeed=boost?42:31;const vNow=chassisBody.linvel();const flatSpeed=Math.hypot(vNow.x,vNow.z);if(flatSpeed>maxSpeed){const scale=maxSpeed/flatSpeed;chassisBody.setLinvel({x:vNow.x*scale,y:vNow.y,z:vNow.z*scale},true)}
  const steerRate=THREE.MathUtils.clamp(Math.abs(forwardSpeed)/8,0,1);chassisBody.setAngvel({x:0,y:-steer*1.65*steerRate,z:0},true);
  const side=new THREE.Vector3(1,0,0).applyQuaternion(yaw);const lateral=vNow.x*side.x+vNow.z*side.z;chassisBody.applyImpulse({x:-side.x*lateral*.10,z:-side.z*lateral*.10,y:0},true);
- physicsWorld.timestep=dt;physicsWorld.step();const pos=chassisBody.translation();const rotNow=chassisBody.rotation();car.position.set(pos.x,pos.y-.35,pos.z);car.quaternion.set(rotNow.x,rotNow.y,rotNow.z,rotNow.w);
+ physicsWorld.timestep=dt;physicsWorld.step();const pos=chassisBody.translation();const rotNow=chassisBody.rotation();car.position.set(pos.x,pos.y-.78,pos.z);car.quaternion.set(rotNow.x,rotNow.y,rotNow.z,rotNow.w);
  const actualVel=chassisBody.linvel();speed=Math.hypot(actualVel.x,actualVel.z);distance+=speed*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.22});
  pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;$('coins').textContent=coins;toast()}});
  if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
