@@ -110,7 +110,29 @@ for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
  wheels.push({pivot,z});
 }
 car.position.set(0,0,4);
-// Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
+// Upgrade path: load an original unbranded CC0 supercar model; keep the procedural car as a fallback.
+(async()=>{
+ try{
+  const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/loaders/GLTFLoader.js');
+  const loader=new GLTFLoader();
+  loader.load('https://files.innerscene.com/library/generic-mid-engine-supercar-73f252c5/b41b620d8a8890b1b70a/generic-mid-engine-supercar.glb',gltf=>{
+   const model=gltf.scene;
+   const bounds=new THREE.Box3().setFromObject(model);
+   const size=bounds.getSize(new THREE.Vector3());
+   const center=bounds.getCenter(new THREE.Vector3());
+   const longest=Math.max(size.x,size.z);
+   if(!Number.isFinite(longest)||longest<.1)throw new Error('Invalid vehicle model dimensions');
+   model.scale.setScalar(4.35/longest);
+   model.position.sub(center.multiplyScalar(model.scale.x));
+   model.rotation.y=Math.PI;
+   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.envMapIntensity=1.25}}});
+   car.clear();
+   car.add(model);
+   car.position.set(0,0,4);
+  },undefined,err=>console.warn('Supercar model unavailable; using built-in fallback.',err));
+ }catch(err){console.warn('Supercar model loader unavailable; using built-in fallback.',err)}
+})();
+ // Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
 const sparks=[];const sparkGeo=new THREE.SphereGeometry(.035,6,5);const sparkMat=new THREE.MeshBasicMaterial({color:0xffbd63});
 for(let i=0;i<36;i++){const m=new THREE.Mesh(sparkGeo,sparkMat);m.visible=false;scene.add(m);sparks.push({mesh:m,vel:new THREE.Vector3(),life:0})}
 let previousImpactSpeed=0,impactCooldown=0;
