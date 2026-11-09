@@ -121,10 +121,10 @@ let vehicleAnimations=[];
 (async()=>{
  try{
   const loader=new GLTFLoader();
-  const gltf=await loader.loadAsync('https://cdn.jsdelivr.net/gh/JaronKBragg7337/spectral-gt-rs@main/spectral_gt_rs_game_ready.glb');
+  const gltf=await loader.loadAsync('https://files.innerscene.com/library/generic-mid-engine-supercar-73f252c5/b41b620d8a8890b1b70a/generic-mid-engine-supercar.glb');
   const model=gltf.scene;
   // Asset front is +X; rotate it to match this game's forward direction (-Z).
-  model.rotation.y=Math.PI/2;
+  model.rotation.y=Math.PI/2; // The asset is authored lengthwise on +X; rotate its nose toward the game's -Z forward axis.
   model.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(model);
   const center=bounds.getCenter(new THREE.Vector3());
@@ -160,11 +160,11 @@ let vehicleAnimations=[];
   car.add(model);
   vehicleAnimations=gltf.animations||[];
   vehicleMixer=vehicleAnimations.length?new THREE.AnimationMixer(model):null;
-  $('vehicleStatus').textContent='SPECTRAL GT RS · 3D ASSET';
-  console.info('PLAYVERSE: detailed CC0 vehicle loaded', {animations:vehicleAnimations.map(a=>a.name)});
+  $('vehicleStatus').textContent='MID-ENGINE SUPERCAR · 3D ASSET';
+  console.info('PLAYVERSE: CC0 mid-engine supercar loaded', {animations:vehicleAnimations.map(a=>a.name)});
  }catch(err){
   $('vehicleStatus').textContent='BUILT-IN CAR · MODEL UNAVAILABLE';
-  console.warn('Detailed vehicle could not load; keeping the built-in car.',err);
+  console.warn('CC0 mid-engine supercar could not load; keeping the built-in car.',err);
  }
 })();
  // Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
