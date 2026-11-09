@@ -144,8 +144,8 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
   const targetSteer=(left?-1:0)+(right?1:0);steer=THREE.MathUtils.damp(steer,targetSteer,4.2,dt);
   if(boost){nitro=Math.max(0,nitro-26*dt);speed=Math.min(speed,48)}
   // Arcade lane steering: move sideways without accumulating a full-spin heading.
-  car.rotation.y = -steer*.13;
-  car.position.x += steer*(2.4+Math.abs(speed)*.045)*dt;
+  car.rotation.y = -steer*.17;
+  car.position.x += steer*(2.9+Math.abs(speed)*.055)*dt;
   car.position.z -= speed*dt;
   car.position.x=THREE.MathUtils.clamp(car.position.x,-7.6,7.6);
     distance+=Math.abs(speed)*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.28});
