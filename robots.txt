@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://joseee65278007.github.io/PLAYVERSE/sitemap.xml
