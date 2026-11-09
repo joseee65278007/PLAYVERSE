@@ -20,11 +20,15 @@
 </div>
 <script type="module">
 import * as THREE from 'three';
+import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/loaders/GLTFLoader.js';
+import {RoomEnvironment} from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/environments/RoomEnvironment.js';
 const root=document.getElementById('game');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x91b9c5);scene.fog=new THREE.FogExp2(0x91b9c5,.0037);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,900);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 const lowPower=(navigator.hardwareConcurrency||4)<=4||(navigator.deviceMemory||4)<=4;let renderScale=lowPower?Math.min(devicePixelRatio,.85):Math.min(devicePixelRatio,1.35);renderer.setPixelRatio(renderScale);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!lowPower;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=!lowPower;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.domElement.style.imageRendering='auto';root.appendChild(renderer.domElement);
+// Studio-style image-based lighting gives the car's clearcoat and metallic paint something to reflect.
+const pmremGenerator=new THREE.PMREMGenerator(renderer);const studioEnvironment=pmremGenerator.fromScene(new RoomEnvironment(),.04).texture;scene.environment=studioEnvironment;pmremGenerator.dispose();
 scene.add(new THREE.HemisphereLight(0xcfeaff,0x536044,2.0));
 const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-45,75,35);sun.castShadow=!lowPower;sun.shadow.mapSize.set(lowPower?512:1024,lowPower?512:1024);sun.shadow.camera.left=-35;sun.shadow.camera.right=35;sun.shadow.camera.top=45;sun.shadow.camera.bottom=-45;sun.shadow.bias=-0.00018;scene.add(sun);
 const mat=(color,roughness=.7,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
@@ -111,34 +115,45 @@ for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
  wheels.push({pivot,z});
 }
 car.position.set(0,0,4);
-// Optional external vehicle model; keep the built-in car as a fallback if it cannot load.
+// Production vehicle asset: detailed CC0 Spectral GT RS, authored in Blender at real-world scale.
+let vehicleMixer=null;
+let vehicleAnimations=[];
 (async()=>{
  try{
-  const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/loaders/GLTFLoader.js');
   const loader=new GLTFLoader();
-  loader.load('https://files.innerscene.com/library/generic-mid-engine-supercar-73f252c5/b41b620d8a8890b1b70a/generic-mid-engine-supercar.glb',gltf=>{
-   const model=gltf.scene;
-   const bounds=new THREE.Box3().setFromObject(model);
-   const size=bounds.getSize(new THREE.Vector3());
-   const center=bounds.getCenter(new THREE.Vector3());
-   const longest=Math.max(size.x,size.z);
-   if(!Number.isFinite(longest)||longest<.1)throw new Error('Invalid vehicle model dimensions');
-   model.scale.setScalar(4.35/longest);
-   model.position.sub(center.multiplyScalar(model.scale.x));
-   model.rotation.y=Math.PI;
-   model.traverse(o=>{if(o.isMesh){o.castShadow=!lowPower;o.receiveShadow=!lowPower;if(o.material){o.material.envMapIntensity=1.25;o.material.needsUpdate=true}}});
-   car.clear();
-   car.add(model);
-   car.position.set(0,0,4);
-   $('vehicleStatus').textContent='3D SUPERCAR LOADED';
-   console.info('PLAYVERSE: external supercar model loaded', {size:size.toArray(), scale:model.scale.x});
-  },undefined,err=>{
-   $('vehicleStatus').textContent='BUILT-IN CAR · MODEL FAILED';
-   console.warn('Supercar model unavailable; using built-in fallback.',err);
+  const gltf=await loader.loadAsync('https://cdn.jsdelivr.net/gh/JaronKBragg7337/spectral-gt-rs@main/spectral_gt_rs_game_ready.glb');
+  const model=gltf.scene;
+  // Asset front is +X; rotate it to match this game's forward direction (-Z).
+  model.rotation.y=Math.PI/2;
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  const center=bounds.getCenter(new THREE.Vector3());
+  model.position.x-=center.x;
+  model.position.z-=center.z;
+  model.position.y-=bounds.min.y;
+  model.traverse(o=>{
+   if(o.isMesh){
+    o.castShadow=!lowPower;
+    o.receiveShadow=!lowPower;
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    for(const material of materials){
+     if(material && 'envMapIntensity' in material){
+      material.envMapIntensity=lowPower?.8:1.35;
+      material.needsUpdate=true;
+     }
+    }
+   }
   });
+  car.clear();
+  wheels.length=0;
+  car.add(model);
+  vehicleAnimations=gltf.animations||[];
+  vehicleMixer=vehicleAnimations.length?new THREE.AnimationMixer(model):null;
+  $('vehicleStatus').textContent='SPECTRAL GT RS · 3D ASSET';
+  console.info('PLAYVERSE: detailed CC0 vehicle loaded', {animations:vehicleAnimations.map(a=>a.name)});
  }catch(err){
-  $('vehicleStatus').textContent='BUILT-IN CAR · LOADER FAILED';
-  console.warn('Supercar model loader unavailable; using built-in fallback.',err);
+  $('vehicleStatus').textContent='BUILT-IN CAR · MODEL UNAVAILABLE';
+  console.warn('Detailed vehicle could not load; keeping the built-in car.',err);
  }
 })();
  // Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
@@ -237,7 +252,7 @@ function animate(now){requestAnimationFrame(animate);const rawDt=(now-last)/1000
   const camPos=cameraMode===0?new THREE.Vector3(car.position.x,car.position.y,car.position.z).add(chaseOffset):cameraMode===1?new THREE.Vector3(car.position.x-forward.x*.2,car.position.y+1.65,car.position.z-forward.z*.2):new THREE.Vector3(car.position.x-forward.x*8,car.position.y+13,car.position.z-forward.z*8);
  camera.position.lerp(camPos,.09);
  const lookTarget=cameraMode===1?new THREE.Vector3(car.position.x+forward.x*15,1.4,car.position.z+forward.z*15):target;
- camera.lookAt(lookTarget);renderer.render(scene,camera)}
+ camera.lookAt(lookTarget);if(vehicleMixer)vehicleMixer.update(dt);renderer.render(scene,camera)}
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65))});
 </script>
