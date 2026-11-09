@@ -188,7 +188,7 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
   }
   speed=THREE.MathUtils.clamp(speed,-7,maxForward);
   if(boost){nitro=Math.max(0,nitro-26*dt);speed=Math.min(speed,48)}
-  const targetSteer=(left?-1:0)+(right?1:0);
+  const targetSteer=(left?1:0)+(right?-1:0);
   steer=THREE.MathUtils.damp(steer,targetSteer,5.5,dt);
   // Front-wheel steering angle decreases at speed to prevent unrealistic instant spins.
   const speedRatio=THREE.MathUtils.clamp(Math.abs(speed)/36,0,1);
