@@ -168,11 +168,17 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
   if(brake)speed=Math.max(-7,speed-34*dt);
   const targetSteer=(left?-1:0)+(right?1:0);steer=THREE.MathUtils.damp(steer,targetSteer,4.2,dt);
   if(boost){nitro=Math.max(0,nitro-26*dt);speed=Math.min(speed,48)}
-  // U key performs a controlled 180-degree turn; steering still shifts lanes.
+  // Arrow keys steer the car's actual heading, like a racing game.
+  // Steering is speed-sensitive and reverses naturally while backing up.
+  const turnStrength=THREE.MathUtils.clamp(Math.abs(speed)/13,0.18,1);
+  const driveDirection=speed<-.15?-1:1;
+  heading += steer * 1.12 * turnStrength * driveDirection * dt;
+  // U key overrides normal steering with a smooth 180-degree U-turn.
   const angleDelta=Math.atan2(Math.sin(turnTarget-heading),Math.cos(turnTarget-heading));
-  heading+=angleDelta*Math.min(1,dt*2.6);
-  car.rotation.y=heading-steer*.17;
-  car.position.x += -Math.sin(heading)*speed*dt + steer*(2.9+Math.abs(speed)*.055)*dt;
+  if(Math.abs(angleDelta)>.035) heading += angleDelta*Math.min(1,dt*2.6);
+  car.rotation.y=heading-steer*.08;
+  // The car travels in the direction its nose points; no sideways lane-sliding.
+  car.position.x += -Math.sin(heading)*speed*dt;
   car.position.z -= Math.cos(heading)*speed*dt;
   if(wrongWayTimer>=0){
    wrongWayTimer=Math.max(0,wrongWayTimer-dt);
@@ -192,8 +198,13 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
   if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
   $('speed').textContent=Math.round(Math.abs(speed)*3.6);$('distance').textContent=Math.floor(distance)+' m';$('nitro').style.width=nitro+'%';$('nitroText').textContent=Math.round(nitro)+'%';
   }
-  const target=new THREE.Vector3(car.position.x*.65,car.position.y+1.9,car.position.z+5.7);const camPos=cameraMode===0?new THREE.Vector3(car.position.x*.55,car.position.y+5.0,car.position.z+10.8):cameraMode===1?new THREE.Vector3(car.position.x,car.position.y+1.65,car.position.z-.2):new THREE.Vector3(car.position.x*.35,car.position.y+13,car.position.z+18);
- camera.position.lerp(camPos,.09);camera.lookAt(cameraMode===1?new THREE.Vector3(car.position.x,1.4,car.position.z-15):target);renderer.render(scene,camera)}
+  const forward=new THREE.Vector3(-Math.sin(heading),0,-Math.cos(heading));
+  const target=new THREE.Vector3(car.position.x+forward.x*5,car.position.y+1.9,car.position.z+forward.z*5);
+  const chaseOffset=new THREE.Vector3(Math.sin(heading)*.0,5.0,10.8).applyAxisAngle(new THREE.Vector3(0,1,0),heading);
+  const camPos=cameraMode===0?new THREE.Vector3(car.position.x,car.position.y,car.position.z).add(chaseOffset):cameraMode===1?new THREE.Vector3(car.position.x-forward.x*.2,car.position.y+1.65,car.position.z-forward.z*.2):new THREE.Vector3(car.position.x-forward.x*8,car.position.y+13,car.position.z-forward.z*8);
+ camera.position.lerp(camPos,.09);
+ const lookTarget=cameraMode===1?new THREE.Vector3(car.position.x+forward.x*15,1.4,car.position.z+forward.z*15):target;
+ camera.lookAt(lookTarget);renderer.render(scene,camera)}
 requestAnimationFrame(animate);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65))});
 </script>
