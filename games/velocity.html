@@ -12,7 +12,7 @@
 <body>
 <div id="game"></div>
 <div class="hud">
- <div class="top"><div class="brand">PLAYVERSE <span>/ VELOCITY</span><small id="vehicleStatus" class="vehicle-status">LOADING 3D CAR...</small></div><div class="center">COASTLINE RUN · FREE DRIVE</div><div class="stats"><div class="pill"><small>COINS</small><b id="coins">0</b></div><div class="pill"><small>DISTANCE</small><b id="distance">0 m</b></div></div></div>
+ <div class="top"><div class="brand">PLAYVERSE <span>/ VELOCITY</span><small id="vehicleStatus" class="vehicle-status">LOADING 3D CAR...</small></div><div class="center">COASTLINE RUN · FREE DRIVE</div><div class="stats"><div class="pill"><small>DAILY DRIVE</small><b id="dailyDrive">0 / 1.5 km</b></div><div class="pill"><small>COINS</small><b id="coins">0</b></div><div class="pill"><small>DISTANCE</small><b id="distance">0 m</b></div></div></div>
  <div class="toast" id="toast">NITRO PICKUP +25%</div>
  <div class="wrong-way hidden" id="wrongWay">WRONG WAY · TURN BACK IN 15</div>
  <div class="bottom"><div><div class="speed"><span id="speed">0</span> <small>KM/H</small></div><div class="nitro"><div class="nitro-label"><span>NITRO</span><b id="nitroText">0%</b></div><div class="bar"><div class="fill" id="nitro"></div></div></div></div><div class="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A D / ← → STEER &nbsp; SHIFT NITRO<br>U U-TURN &nbsp; R RESET &nbsp; C CAMERA</div></div>
@@ -189,10 +189,10 @@ window.addEventListener('keydown',e=>setDriveKey(e,true),{passive:false});
 window.addEventListener('keyup',e=>setDriveKey(e,false),{passive:false});
 window.addEventListener('blur',()=>{for(const k in key)key[k]=false});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const k in key)key[k]=false});
-let speed=0,steer=0,nitro=0,coins=0,distance=0,cameraMode=0,started=false,last=performance.now(),toastTimer;let qualityClock=0,frameTotal=0,frameSamples=0;
+let speed=0,steer=0,nitro=0,coins=0,distance=0,dailyDistance=0,cameraMode=0,started=false,last=performance.now(),toastTimer,dailySaveClock=0;let qualityClock=0,frameTotal=0,frameSamples=0;
 let heading=0,turnTarget=0,wrongWayTimer=-1,turnNoticeTimer=0;
 const $=id=>document.getElementById(id);
-try{coins=Math.max(0,Number(localStorage.getItem('playverseCoins'))||0)}catch(e){}$('coins').textContent=coins;
+function localDay(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}\nlet dailyDate=localDay();try{coins=Math.max(0,Number(localStorage.getItem('playverseCoins'))||0);if(localStorage.getItem('playverseDailyDate')===dailyDate)dailyDistance=Math.max(0,Number(localStorage.getItem('playverseDailyDistance'))||0)}catch(e){}$('coins').textContent=coins;\nfunction updateDaily(){const goal=1500;$('dailyDrive').textContent=(dailyDistance>=goal?'DONE':(dailyDistance/1000).toFixed(1)+' / 1.5 km');}updateDaily();
 function resetCar(){car.position.set(0,0,4);car.rotation.set(0,0,0);speed=0;steer=0;heading=0;turnTarget=0;wrongWayTimer=-1;$('wrongWay').classList.add('hidden')}
 function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
 $('start').onclick=()=>{$('intro').classList.add('hidden');started=true;last=performance.now()};
@@ -251,7 +251,7 @@ function animate(now){requestAnimationFrame(animate);const rawDt=(now-last)/1000
    if(turnNoticeTimer<=0)$('wrongWay').classList.add('hidden');
   }else if(Math.abs(heading)<.12){$('wrongWay').classList.add('hidden')}
   car.position.x=THREE.MathUtils.clamp(car.position.x,-7.6,7.6);
-    distance+=Math.abs(speed)*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=w.z<0?-steer*.32:0});vehicleWheels.forEach(w=>{w.pivot.rotation.z-=speed*dt/.405;if(w.front)w.pivot.rotation.y=-steer*.34});
+    const meters=Math.abs(speed)*dt*.52;distance+=meters;dailyDistance+=meters;dailySaveClock+=dt;if(dailySaveClock>=1){dailySaveClock=0;if(localDay()!==dailyDate){dailyDate=localDay();dailyDistance=0}try{localStorage.setItem('playverseDailyDate',dailyDate);localStorage.setItem('playverseDailyDistance',String(dailyDistance))}catch(e){}if(dailyDistance>=1500){let claimed=false;try{claimed=localStorage.getItem('playverseDailyClaimed')===dailyDate}catch(e){}if(!claimed){coins+=100;try{localStorage.setItem('playverseCoins',String(coins));localStorage.setItem('playverseDailyClaimed',dailyDate)}catch(e){}$('coins').textContent=coins;$('toast').textContent='DAILY DRIVE COMPLETE · +100 COINS';toast()}}updateDaily()}wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=w.z<0?-steer*.32:0});vehicleWheels.forEach(w=>{w.pivot.rotation.z-=speed*dt/.405;if(w.front)w.pivot.rotation.y=-steer*.34});
   sparks.forEach(p=>{if(p.life>0){p.life-=dt;p.vel.y-=12*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.visible=p.life>0}});
   pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;try{localStorage.setItem('playverseCoins',String(coins))}catch(e){}$('coins').textContent=coins;toast()}});
   if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
