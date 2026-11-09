@@ -24,9 +24,9 @@ const root=document.getElementById('game');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x91b9c5);scene.fog=new THREE.FogExp2(0x91b9c5,.0037);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,900);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-const lowPower=navigator.hardwareConcurrency<=4;renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=true;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.domElement.style.imageRendering='auto';root.appendChild(renderer.domElement);
+const lowPower=(navigator.hardwareConcurrency||4)<=4||(navigator.deviceMemory||4)<=4;let renderScale=lowPower?Math.min(devicePixelRatio,.85):Math.min(devicePixelRatio,1.35);renderer.setPixelRatio(renderScale);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!lowPower;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=!lowPower;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.domElement.style.imageRendering='auto';root.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xcfeaff,0x536044,2.0));
-const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-45,75,35);sun.castShadow=true;sun.shadow.mapSize.set(lowPower?512:2048,lowPower?512:2048);sun.shadow.camera.left=-35;sun.shadow.camera.right=35;sun.shadow.camera.top=45;sun.shadow.camera.bottom=-45;sun.shadow.bias=-0.00018;scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-45,75,35);sun.castShadow=!lowPower;sun.shadow.mapSize.set(lowPower?512:1024,lowPower?512:1024);sun.shadow.camera.left=-35;sun.shadow.camera.right=35;sun.shadow.camera.top=45;sun.shadow.camera.bottom=-45;sun.shadow.bias=-0.00018;scene.add(sun);
 const mat=(color,roughness=.7,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(900,900),mat(0x71865b));ground.rotation.x=-Math.PI/2;ground.position.y=-.16;ground.receiveShadow=true;scene.add(ground);
 // Procedural asphalt texture with subtle aggregate grain.
@@ -111,7 +111,7 @@ for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
  wheels.push({pivot,z});
 }
 car.position.set(0,0,4);
-// Upgrade path: load an original unbranded CC0 supercar model; keep the procedural car as a fallback.
+// Optional external vehicle model; keep the built-in car as a fallback if it cannot load.
 (async()=>{
  try{
   const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/loaders/GLTFLoader.js');
@@ -163,13 +163,13 @@ window.addEventListener('keydown',e=>setDriveKey(e,true),{passive:false});
 window.addEventListener('keyup',e=>setDriveKey(e,false),{passive:false});
 window.addEventListener('blur',()=>{for(const k in key)key[k]=false});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const k in key)key[k]=false});
-let speed=0,steer=0,nitro=0,coins=0,distance=0,cameraMode=0,started=false,last=performance.now(),toastTimer;
+let speed=0,steer=0,nitro=0,coins=0,distance=0,cameraMode=0,started=false,last=performance.now(),toastTimer;let qualityClock=0,frameTotal=0,frameSamples=0;
 let heading=0,turnTarget=0,wrongWayTimer=-1,turnNoticeTimer=0;
 const $=id=>document.getElementById(id);
 function resetCar(){car.position.set(0,0,4);car.rotation.set(0,0,0);speed=0;steer=0;heading=0;turnTarget=0;wrongWayTimer=-1;$('wrongWay').classList.add('hidden')}
 function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
 $('start').onclick=()=>{$('intro').classList.add('hidden');started=true;last=performance.now()};
-function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.033);last=now;if(started){
+function animate(now){requestAnimationFrame(animate);const rawDt=(now-last)/1000;const dt=Math.min(rawDt,.033);last=now;if(started){frameTotal+=rawDt;frameSamples++;qualityClock+=rawDt;if(qualityClock>=1.25){const avg=frameTotal/Math.max(1,frameSamples);const minScale=lowPower?.62:.82,maxScale=lowPower?1:1.5;if(avg>.024&&renderScale>minScale)renderScale=Math.max(minScale,renderScale-.08);else if(avg<.018&&renderScale<maxScale)renderScale=Math.min(maxScale,renderScale+.035);renderer.setPixelRatio(renderScale);qualityClock=0;frameTotal=0;frameSamples=0;}
   // Vehicle dynamics: throttle, service braking, rolling resistance, aero drag,
   // a speed-sensitive steering angle, and a bicycle-model yaw rate.
   const accel=key.ArrowUp||key.KeyW||key.w||key.W;
