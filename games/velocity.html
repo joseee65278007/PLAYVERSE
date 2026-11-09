@@ -178,15 +178,15 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
    speed+=engineForce*dt;
   }
   if(braking){
-   if(speed>0.35) speed=Math.max(0,speed-13.5*dt);
-   else speed=Math.max(-7,speed-4.2*dt); // brake held at a stop selects reverse
+   if(speed>0.35) speed=Math.max(0,speed-15.5*dt);
+   else speed=Math.max(-14,speed-7.0*dt); // hold brake to build useful reverse speed
   }else if(!throttle){
    const rolling=0.22*dt;
    const aeroDrag=0.012*speed*Math.abs(speed)*dt;
    if(Math.abs(speed)<=rolling+aeroDrag)speed=0;
    else speed-=Math.sign(speed)*(rolling+aeroDrag);
   }
-  speed=THREE.MathUtils.clamp(speed,-7,maxForward);
+  speed=THREE.MathUtils.clamp(speed,-14,maxForward);
   if(boost){nitro=Math.max(0,nitro-26*dt);speed=Math.min(speed,48)}
   const targetSteer=(left?1:0)+(right?-1:0);
   steer=THREE.MathUtils.damp(steer,targetSteer,5.5,dt);
