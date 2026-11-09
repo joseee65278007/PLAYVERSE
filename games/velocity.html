@@ -27,9 +27,9 @@ const root=document.getElementById('game');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x91b9c5);scene.fog=new THREE.FogExp2(0x91b9c5,.0037);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,900);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;root.appendChild(renderer.domElement);
+const lowPower=navigator.hardwareConcurrency<=4;renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=true;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.domElement.style.imageRendering='auto';root.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xcfeaff,0x536044,2.0));
-const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-45,75,35);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=70;sun.shadow.camera.bottom=-70;scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffe2bd,3.1);sun.position.set(-45,75,35);sun.castShadow=true;sun.shadow.mapSize.set(lowPower?512:2048,lowPower?512:2048);sun.shadow.camera.left=-35;sun.shadow.camera.right=35;sun.shadow.camera.top=45;sun.shadow.camera.bottom=-45;sun.shadow.bias=-0.00018;scene.add(sun);
 const mat=(color,roughness=.7,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(900,900),mat(0x71865b));ground.rotation.x=-Math.PI/2;ground.position.y=-.16;ground.receiveShadow=true;scene.add(ground);
 const floorBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,-.28,0));
@@ -48,23 +48,81 @@ for(let i=0;i<65;i++){const side=Math.random()<.5?-1:1,w=5+Math.random()*10,h=7+
 const trunk=mat(0x574534),leaf=mat(0x416344);for(let i=0;i<70;i++){const side=Math.random()<.5?-1:1,z=-Math.random()*650;const x=side*(13+Math.random()*22);const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.24,2.4,6),trunk);t.position.set(x,1.1,z);scene.add(t);const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7+Math.random()*1.2,1),leaf);crown.position.set(x,3.2,z);crown.scale.y=1.25;scene.add(crown)}
 // Roadside barriers.
 const barrierMat=mat(0xb9c1bd,.48,.35);for(const x of [-9.5,9.5]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.28,.65,900),barrierMat);rail.position.set(x,.3,0);rail.castShadow=true;scene.add(rail);const wallBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x,.3,0));physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.16,.65,450).setFriction(.9),wallBody);for(let z=-430;z<430;z+=24){const post=new THREE.Mesh(new THREE.BoxGeometry(.32,1.1,.32),barrierMat);post.position.set(x,-.15,z);scene.add(post)}}
-// Detailed original sports coupe assembly.
+// Original sculpted supercar: tapered body, low canopy, aero details and performance wheels.
 const car=new THREE.Group();scene.add(car);
-const chassisBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.78,4).setLinearDamping(.18).setAngularDamping(2.2).setCcdEnabled(true));
-const chassisCollider=physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.7,2.12).setDensity(720).setFriction(1.35).setRestitution(.08),chassisBody);
-const paint=new THREE.MeshPhysicalMaterial({color:0x167f9b,metalness:.78,roughness:.24,clearcoat:1,clearcoatRoughness:.12});
-const dark=mat(0x101719,.28,.45),glass=new THREE.MeshPhysicalMaterial({color:0x13232a,metalness:.35,roughness:.12,transparent:true,opacity:.88,clearcoat:1}),rubber=mat(0x111315,.86),rim=new THREE.MeshStandardMaterial({color:0xb9c4c6,metalness:.92,roughness:.2});
-function box(parent,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-box(car,2.08,.52,4.35,paint,0,.78,0);
-const hood=box(car,1.98,.2,1.35,paint,0,1.05,-1.35);hood.scale.z=1.05;
-box(car,1.72,.58,1.8,paint,0,1.22,.43);
-const cabin=box(car,1.53,.67,1.75,glass,0,1.58,.42);cabin.rotation.x=-.06;
-box(car,1.55,.12,.12,dark,0,1.93,.05);
-box(car,1.82,.13,.2,dark,0,.57,-2.13);
-for(const x of [-.72,.72]){box(car,.12,.16,.72,dark,x,.87,-1.82);const lamp=box(car,.42,.1,.16,mat(0xdff7ff,.25,.15),x,1.05,-2.12);lamp.rotation.z=x*.08;box(car,.38,.09,.12,mat(0xff352d,.25),x,1.0,2.12)}
-// wheels, hubs, brake discs
-const wheels=[];for(const x of [-1.08,1.08])for(const z of [-1.38,1.38]){const pivot=new THREE.Group();pivot.position.set(x,.55,z);car.add(pivot);const tire=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.32,24),rubber);tire.rotation.z=Math.PI/2;tire.castShadow=true;pivot.add(tire);const hub=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.335,12),rim);hub.rotation.z=Math.PI/2;hub.castShadow=true;pivot.add(hub);for(let s=0;s<5;s++){const spoke=box(pivot,.055,.48,.07,rim,0,0,0);spoke.rotation.x=s*Math.PI/5;spoke.position.x=.18}wheels.push({pivot,z})}
-box(car,1.9,.12,.16,dark,0,1.0,2.0);car.position.set(0,.78,4);
+const chassisBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(0,.78,4).setLinearDamping(.10).setAngularDamping(.72).setCcdEnabled(true));
+physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.98,.43,2.08).setDensity(680).setFriction(1.45).setRestitution(.12),chassisBody);
+const paint=new THREE.MeshPhysicalMaterial({color:0x087f9d,metalness:.82,roughness:.19,clearcoat:1,clearcoatRoughness:.075,envMapIntensity:1.4});
+const carbon=new THREE.MeshStandardMaterial({color:0x080d10,metalness:.62,roughness:.32});
+const glass=new THREE.MeshPhysicalMaterial({color:0x071923,metalness:.42,roughness:.11,transparent:true,opacity:.94,clearcoat:1});
+const rubber= new THREE.MeshStandardMaterial({color:0x090b0d,roughness:.91});
+const alloy=new THREE.MeshStandardMaterial({color:0xb8c7ca,metalness:.96,roughness:.16});
+const brakeMat=new THREE.MeshStandardMaterial({color:0x9b2c20,metalness:.72,roughness:.3});
+const headMat=new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x9edfff,emissiveIntensity:1.8,metalness:.25,roughness:.15});
+const tailMat=new THREE.MeshStandardMaterial({color:0xff251e,emissive:0xff1008,emissiveIntensity:1.4});
+function box(parent,w,h,d,m,x,y,z,rx=0,ry=0,rz=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function sculptedShell(){
+ const stations=[[-2.22,.66,.52],[-1.9,.84,.62],[-1.35,.98,.67],[-.55,1.0,.64],[.65,.98,.61],[1.55,.91,.59],[2.12,.72,.52]];
+ const verts=[],indices=[];
+ for(const [z,w,h] of stations){
+  const ring=[[-w*.82,.02],[-w,.17],[-w*.96,h*.72],[-w*.72,h],[w*.72,h],[w*.96,h*.72],[w,.17],[w*.82,.02]];
+  for(const [x,y] of ring) verts.push(x,y,z);
+ }
+ for(let j=0;j<stations.length-1;j++)for(let k=0;k<8;k++){const a=j*8+k,b=j*8+(k+1)%8,c=(j+1)*8+(k+1)%8,d=(j+1)*8+k;indices.push(a,b,d,b,c,d)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex(indices);g.computeVertexNormals();
+ const shell=new THREE.Mesh(g,paint);shell.castShadow=true;shell.receiveShadow=true;car.add(shell);
+}
+sculptedShell();
+// Panoramic glass cockpit and sculpted roofline.
+const cabinShape=new THREE.Shape();cabinShape.moveTo(-.69,.02);cabinShape.quadraticCurveTo(-.64,.43,-.38,.59);cabinShape.quadraticCurveTo(0,.72,.38,.59);cabinShape.quadraticCurveTo(.64,.43,.69,.02);cabinShape.lineTo(-.69,.02);
+const cabinGeo=new THREE.ExtrudeGeometry(cabinShape,{depth:1.48,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.055,bevelThickness:.045,curveSegments:12});
+const cockpit=new THREE.Mesh(cabinGeo,glass);cockpit.position.set(0,.72,-.72);cockpit.castShadow=true;car.add(cockpit);
+box(car,1.55,.10,1.62,carbon,0,.73,.02);
+box(car,1.72,.10,.24,carbon,0,.48,-2.04);
+box(car,1.9,.12,.42,carbon,0,.31,1.82);
+box(car,1.88,.09,.35,carbon,0,.35,2.03);
+// Front splitter, side skirts, rear diffuser and aero wing.
+box(car,2.0,.09,.35,carbon,0,.18,-2.17);
+box(car,2.03,.12,3.0,carbon,0,.22,0);
+box(car,1.86,.10,.55,carbon,0,.18,2.08);
+for(const x of [-.78,.78]){
+ box(car,.13,.15,1.9,carbon,x,.28,0);
+ box(car,.17,.13,.46,carbon,x,.57,-1.65);
+ // Mirrors
+ const mirror=box(car,.22,.12,.3,paint,x*1.14,.83,-.48,0,0,x*.12);
+ // Rear wheel arch accent and front intake
+ box(car,.23,.32,.72,carbon,x*.9,.35,-1.28);
+}
+// Hood channels, front intakes, rear vents.
+for(const x of [-.48,-.25,.25,.48])box(car,.055,.025,.66,carbon,x,.60,-1.43,0,0,x*.08);
+box(car,.82,.12,.10,carbon,0,.35,-2.18);
+for(const x of [-.66,.66]){
+ const lamp=box(car,.48,.075,.17,headMat,x,.54,-2.04,0,0,x*.12);
+ box(car,.44,.07,.11,tailMat,x,.49,2.10);
+ const intake=box(car,.28,.18,.08,carbon,x,.40,-2.12);
+}
+// Cockpit windshield highlights and roof center spine.
+box(car,.035,.035,1.25,alloy,0,1.33,-.02);
+for(const x of [-.48,.48])box(car,.035,.025,1.25,carbon,x,1.24,-.02,0,0,x*.08);
+// Fixed rear wing with twin supports.
+for(const x of [-.62,.62])box(car,.07,.42,.08,carbon,x,.88,1.72,.12);
+box(car,2.0,.09,.42,carbon,0,1.10,1.75,-.08);
+const wheels=[];
+for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
+ const pivot=new THREE.Group();pivot.position.set(x,.43,z);car.add(pivot);
+ const tire=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.29,32),rubber);tire.rotation.z=Math.PI/2;tire.castShadow=true;pivot.add(tire);
+ const rim=new THREE.Mesh(new THREE.CylinderGeometry(.285,.285,.305,24),alloy);rim.rotation.z=Math.PI/2;pivot.add(rim);
+ const disc=new THREE.Mesh(new THREE.CylinderGeometry(.235,.235,.31,24),brakeMat);disc.rotation.z=Math.PI/2;pivot.add(disc);
+ for(let k=0;k<10;k++){const a=k*Math.PI/5;const spoke=box(pivot,.045,.43,.055,alloy,0,0,0);spoke.rotation.x=a;spoke.position.x=.17}
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.32,16),carbon);hub.rotation.z=Math.PI/2;pivot.add(hub);
+ wheels.push({pivot,z});
+}
+car.position.set(0,.78,4);
+// Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
+const sparks=[];const sparkGeo=new THREE.SphereGeometry(.035,6,5);const sparkMat=new THREE.MeshBasicMaterial({color:0xffbd63});
+for(let i=0;i<36;i++){const m=new THREE.Mesh(sparkGeo,sparkMat);m.visible=false;scene.add(m);sparks.push({mesh:m,vel:new THREE.Vector3(),life:0})}
+let previousImpactSpeed=0,impactCooldown=0;
+function burstSparks(position,velocity){for(let i=0;i<12;i++){const p=sparks.find(v=>v.life<=0);if(!p)break;p.mesh.visible=true;p.mesh.position.copy(position);p.vel.set((Math.random()-.5)*7+velocity.x*.25,Math.random()*5+1,(Math.random()-.5)*7+velocity.z*.25);p.life=.45+Math.random()*.35}}
 const pickups=[];const canMat=new THREE.MeshStandardMaterial({color:0x8ef6ff,emissive:0x24cfff,emissiveIntensity:1.7,metalness:.45,roughness:.2});
 for(let i=0;i<16;i++){const g=new THREE.Group();const can=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.62,12),canMat);g.add(can);const ring=new THREE.Mesh(new THREE.TorusGeometry(.48,.055,8,24),new THREE.MeshBasicMaterial({color:0x78efff}));ring.rotation.x=Math.PI/2;g.add(ring);g.position.set([-4,0,4][i%3],.95,-28-i*43);scene.add(g);pickups.push(g)}
 const key={};addEventListener('keydown',e=>{key[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyC')cameraMode=(cameraMode+1)%3;if(e.code==='KeyR')resetCar()});addEventListener('keyup',e=>key[e.code]=false);
@@ -80,11 +138,11 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
  if(accel)chassisBody.applyImpulse({x:forward.x*25*dt,z:forward.z*25*dt,y:0},true);
  if(brake)chassisBody.applyImpulse({x:-forward.x*(forwardSpeed>=0?42:18)*dt,z:-forward.z*(forwardSpeed>=0?42:18)*dt,y:0},true);
  if(boost){chassisBody.applyImpulse({x:forward.x*36*dt,z:forward.z*36*dt,y:0},true);nitro=Math.max(0,nitro-26*dt)}
- const maxSpeed=boost?42:31;const vNow=chassisBody.linvel();const flatSpeed=Math.hypot(vNow.x,vNow.z);if(flatSpeed>maxSpeed){const scale=maxSpeed/flatSpeed;chassisBody.setLinvel({x:vNow.x*scale,y:vNow.y,z:vNow.z*scale},true)}
- const steerRate=THREE.MathUtils.clamp(Math.abs(forwardSpeed)/8,0,1);chassisBody.setAngvel({x:0,y:-steer*1.65*steerRate,z:0},true);
+ const maxSpeed=boost?48:36;const vNow=chassisBody.linvel();const flatSpeed=Math.hypot(vNow.x,vNow.z);if(flatSpeed>maxSpeed){const scale=maxSpeed/flatSpeed;chassisBody.setLinvel({x:vNow.x*scale,y:vNow.y,z:vNow.z*scale},true)}
+ const steerRate=THREE.MathUtils.clamp(Math.abs(forwardSpeed)/8,0,1);chassisBody.setAngvel({x:0,y:-steer*1.9*steerRate,z:0},true);
  const side=new THREE.Vector3(1,0,0).applyQuaternion(yaw);const lateral=vNow.x*side.x+vNow.z*side.z;chassisBody.applyImpulse({x:-side.x*lateral*.10,z:-side.z*lateral*.10,y:0},true);
- physicsWorld.timestep=dt;physicsWorld.step();const pos=chassisBody.translation();const rotNow=chassisBody.rotation();car.position.set(pos.x,pos.y-.78,pos.z);car.quaternion.set(rotNow.x,rotNow.y,rotNow.z,rotNow.w);
- const actualVel=chassisBody.linvel();speed=Math.hypot(actualVel.x,actualVel.z);distance+=speed*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.22});
+ physicsWorld.timestep=dt;physicsWorld.step();impactCooldown=Math.max(0,impactCooldown-dt);const postVel=chassisBody.linvel();const impactSpeed=Math.hypot(postVel.x,postVel.z);if(impactSpeed<previousImpactSpeed-5&&previousImpactSpeed>12&&impactCooldown<=0){const hitPos=new THREE.Vector3(car.position.x,car.position.y+.35,car.position.z);burstSparks(hitPos,new THREE.Vector3(postVel.x,0,postVel.z));impactCooldown=.55}previousImpactSpeed=impactSpeed;const pos=chassisBody.translation();const rotNow=chassisBody.rotation();car.position.set(pos.x,pos.y-.78,pos.z);car.quaternion.set(rotNow.x,rotNow.y,rotNow.z,rotNow.w);
+ const actualVel=chassisBody.linvel();speed=Math.hypot(actualVel.x,actualVel.z);distance+=speed*dt*.52;wheels.forEach(w=>{w.pivot.rotation.x-=speed*dt*.9;if(Math.abs(w.z)>1)w.pivot.rotation.y=-steer*.28});sparks.forEach(p=>{if(p.life>0){p.life-=dt;p.vel.y-=12*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.visible=p.life>0}});
  pickups.forEach(p=>{if(Math.abs(p.position.z-car.position.z)<2.8&&Math.abs(p.position.x-car.position.x)<2.3){p.position.z-=690;nitro=Math.min(100,nitro+25);coins+=10;$('coins').textContent=coins;toast()}});
  if(car.position.z < -560){resetCar();pickups.forEach((p,i)=>p.position.z=-28-i*43);distance+=560}
  $('speed').textContent=Math.round(Math.abs(speed)*3.6);$('distance').textContent=Math.floor(distance)+' m';$('nitro').style.width=nitro+'%';$('nitroText').textContent=Math.round(nitro)+'%';
@@ -92,6 +150,6 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
  const target=new THREE.Vector3(car.position.x*.65,car.position.y+1.9,car.position.z+5.7);const camPos=cameraMode===0?new THREE.Vector3(car.position.x*.55,car.position.y+5.0,car.position.z+10.8):cameraMode===1?new THREE.Vector3(car.position.x,car.position.y+1.65,car.position.z-.2):new THREE.Vector3(car.position.x*.35,car.position.y+13,car.position.z+18);
  camera.position.lerp(camPos,.09);camera.lookAt(cameraMode===1?new THREE.Vector3(car.position.x,1.4,car.position.z-15):target);renderer.render(scene,camera)}
 requestAnimationFrame(animate);
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5))});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,lowPower?1:1.65))});
 </script>
 </body></html>
