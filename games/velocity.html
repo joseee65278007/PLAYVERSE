@@ -192,7 +192,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const k
 let speed=0,steer=0,nitro=0,coins=0,distance=0,dailyDistance=0,cameraMode=0,started=false,last=performance.now(),toastTimer,dailySaveClock=0;let qualityClock=0,frameTotal=0,frameSamples=0;
 let heading=0,turnTarget=0,wrongWayTimer=-1,turnNoticeTimer=0;
 const $=id=>document.getElementById(id);
-function localDay(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}\nlet dailyDate=localDay();try{coins=Math.max(0,Number(localStorage.getItem('playverseCoins'))||0);if(localStorage.getItem('playverseDailyDate')===dailyDate)dailyDistance=Math.max(0,Number(localStorage.getItem('playverseDailyDistance'))||0)}catch(e){}$('coins').textContent=coins;\nfunction updateDaily(){const goal=1500;$('dailyDrive').textContent=(dailyDistance>=goal?'DONE':(dailyDistance/1000).toFixed(1)+' / 1.5 km');}updateDaily();
+function localDay(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+let dailyDate=localDay();try{coins=Math.max(0,Number(localStorage.getItem('playverseCoins'))||0);if(localStorage.getItem('playverseDailyDate')===dailyDate)dailyDistance=Math.max(0,Number(localStorage.getItem('playverseDailyDistance'))||0)}catch(e){}$('coins').textContent=coins;
+function updateDaily(){const goal=1500;$('dailyDrive').textContent=(dailyDistance>=goal?'DONE':(dailyDistance/1000).toFixed(1)+' / 1.5 km');}updateDaily();
 function resetCar(){car.position.set(0,0,4);car.rotation.set(0,0,0);speed=0;steer=0;heading=0;turnTarget=0;wrongWayTimer=-1;$('wrongWay').classList.add('hidden')}
 function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
 $('start').onclick=()=>{$('intro').classList.add('hidden');started=true;last=performance.now()};
