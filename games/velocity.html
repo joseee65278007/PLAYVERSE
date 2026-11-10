@@ -25,7 +25,8 @@
  <div class="toast" id="toast">NITRO PICKUP +25%</div>
  <div class="wrong-way hidden" id="wrongWay">WRONG WAY · TURN BACK IN 15</div>
  <div class="bottom"><div><div class="speed"><span id="speed">0</span> <small>KM/H</small></div><div class="nitro"><div class="nitro-label"><span>NITRO</span><b id="nitroText">0%</b></div><div class="bar"><div class="fill" id="nitro"></div></div></div></div><div class="help">W / ↑ ACCELERATE &nbsp; S / ↓ BRAKE<br>A D / ← → STEER &nbsp; SHIFT NITRO<br>U U-TURN &nbsp; R RESET &nbsp; C CAMERA &nbsp; P PAUSE</div></div>
- <div class="overlay hidden" id="pauseOverlay"><div class="panel"><div class="eyebrow">DRIVE PAUSED</div><h1>TAKE A<br>BREATHER.</h1><p>Your drive is safely paused. Your distance, coins, and daily progress are kept.</p><button class="btn" id="resumeBtn">RESUME DRIVING</button><button class="btn" id="restartBtn" style="background:#25352c;color:#f4f7f4">RESET CAR</button></div></div>\n <div class="overlay" id="intro"><div class="panel"><div class="eyebrow">PLAYVERSE ORIGINAL · BUILD 01</div><h1>COASTLINE<br>RUN.</h1><p>A first playable driving test. Explore the road, collect nitro cans and build your coin balance. Build speed, collect nitro, earn coins, and complete your daily drive. Press P to pause anytime.</p><button class="btn" id="start">START DRIVING</button><p class="sub">Keyboard: WASD / arrows · U U-turn · Shift nitro · C camera · P pause</p></div></div>
+ <div class="overlay hidden" id="pauseOverlay"><div class="panel"><div class="eyebrow">DRIVE PAUSED</div><h1>TAKE A<br>BREATHER.</h1><p>Your drive is safely paused. Your distance, coins, and daily progress are kept.</p><button class="btn" id="resumeBtn">RESUME DRIVING</button><button class="btn" id="restartBtn" style="background:#25352c;color:#f4f7f4">RESET CAR</button></div></div>
+ <div class="overlay" id="intro"><div class="panel"><div class="eyebrow">PLAYVERSE ORIGINAL · BUILD 01</div><h1>COASTLINE<br>RUN.</h1><p>A first playable driving test. Explore the road, collect nitro cans and build your coin balance. Build speed, collect nitro, earn coins, and complete your daily drive. Press P to pause anytime.</p><button class="btn" id="start">START DRIVING</button><p class="sub">Keyboard: WASD / arrows · U U-turn · Shift nitro · C camera · P pause</p></div></div>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -124,59 +125,12 @@ for(const x of [-1.0,1.0])for(const z of [-1.38,1.38]){
  wheels.push({pivot,z});
 }
 car.position.set(0,0,4);
-// Production vehicle asset: detailed CC0 Spectral GT RS, authored in Blender at real-world scale.
+// Built-in sculpted prototype loads immediately; external GLB loading is disabled
+// until the separately authored Project One GT is exported and hosted reliably.
 let vehicleMixer=null;
 let vehicleAnimations=[];
-(async()=>{
- try{
-  const loader=new GLTFLoader();
-  const gltf=await loader.loadAsync('https://files.innerscene.com/library/generic-mid-engine-supercar-73f252c5/b41b620d8a8890b1b70a/generic-mid-engine-supercar.glb');
-  const model=gltf.scene;
-  // Asset front is +X; rotate it to match this game's forward direction (-Z).
-  model.rotation.y=Math.PI/2; // The asset is authored lengthwise on +X; rotate its nose toward the game's -Z forward axis.
-  model.updateMatrixWorld(true);
-  const bounds=new THREE.Box3().setFromObject(model);
-  const center=bounds.getCenter(new THREE.Vector3());
-  model.position.x-=center.x;
-  model.position.z-=center.z;
-  model.position.y-=bounds.min.y;
-  // Build four real wheel pivots from the model's separately authored wheel/brake meshes.
-  for(const prefix of ['Front_Left','Front_Right','Rear_Left','Rear_Right']){
-   const parts=[];
-   model.traverse(o=>{if(o.isMesh&&o.name.startsWith(prefix+'_')&&!o.name.includes('Brake_Caliper'))parts.push(o)});
-   const tire=parts.find(o=>o.name.endsWith('_Tire'));
-   if(!tire)continue;
-   const wheelWorld=new THREE.Vector3();tire.getWorldPosition(wheelWorld);
-   const pivot=new THREE.Group();pivot.position.copy(model.worldToLocal(wheelWorld.clone()));model.add(pivot);
-   parts.forEach(part=>pivot.attach(part));
-   vehicleWheels.push({pivot,front:prefix.startsWith('Front')});
-  }
-  model.traverse(o=>{
-   if(o.isMesh){
-    o.castShadow=!lowPower;
-    o.receiveShadow=!lowPower;
-    const materials=Array.isArray(o.material)?o.material:[o.material];
-    for(const material of materials){
-     if(material && 'envMapIntensity' in material){
-      material.envMapIntensity=lowPower?.8:1.35;
-      material.needsUpdate=true;
-     }
-    }
-   }
-  });
-  car.clear();
-  wheels.length=0;
-  car.add(model);
-  vehicleAnimations=gltf.animations||[];
-  vehicleMixer=vehicleAnimations.length?new THREE.AnimationMixer(model):null;
-  $('vehicleStatus').textContent='MID-ENGINE SUPERCAR · 3D ASSET';
-  console.info('PLAYVERSE: CC0 mid-engine supercar loaded', {animations:vehicleAnimations.map(a=>a.name)});
- }catch(err){
-  $('vehicleStatus').textContent='BUILT-IN PROTOTYPE CAR';
-  console.warn('CC0 mid-engine supercar could not load; keeping the built-in car.',err);
- }
-})();
- // Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
+$('vehicleStatus').textContent='BUILT-IN PROTOTYPE CAR · READY';
+// Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
 const sparks=[];const sparkGeo=new THREE.SphereGeometry(.035,6,5);const sparkMat=new THREE.MeshBasicMaterial({color:0xffbd63});
 for(let i=0;i<36;i++){const m=new THREE.Mesh(sparkGeo,sparkMat);m.visible=false;scene.add(m);sparks.push({mesh:m,vel:new THREE.Vector3(),life:0})}
 let previousImpactSpeed=0,impactCooldown=0;
@@ -191,7 +145,8 @@ function setDriveKey(e,down){
  if(k)key[k]=down;
  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(k)||['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(code))e.preventDefault();
  if(down&&!e.repeat&&code==='KeyC')cameraMode=(cameraMode+1)%3;
- if(down&&!e.repeat&&code==='KeyR')resetCar();\n  if(down&&!e.repeat&&code==='KeyP'&&started)togglePause();
+ if(down&&!e.repeat&&code==='KeyR')resetCar();
+  if(down&&!e.repeat&&code==='KeyP'&&started)togglePause();
  if(down&&!e.repeat&&code==='KeyU'){turnTarget=turnTarget===0?Math.PI:0;wrongWayTimer=turnTarget===Math.PI?15:-1;}
 }
 window.addEventListener('keydown',e=>setDriveKey(e,true),{passive:false});
@@ -205,7 +160,9 @@ function localDay(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 let dailyDate=localDay();try{coins=Math.max(0,Number(localStorage.getItem('playverseCoins'))||0);if(localStorage.getItem('playverseDailyDate')===dailyDate)dailyDistance=Math.max(0,Number(localStorage.getItem('playverseDailyDistance'))||0)}catch(e){}$('coins').textContent=coins;
 function updateDaily(){const goal=1500;$('dailyDrive').textContent=(dailyDistance>=goal?'DONE':(dailyDistance/1000).toFixed(1)+' / 1.5 km');}updateDaily();
 function resetCar(){car.position.set(0,0,4);car.rotation.set(0,0,0);speed=0;steer=0;heading=0;turnTarget=0;wrongWayTimer=-1;$('wrongWay').classList.add('hidden')}
-function togglePause(force){paused=typeof force==='boolean'?force:!paused;for(const k in key)key[k]=false;$('pauseOverlay').classList.toggle('hidden',!paused);$('pauseBtn').textContent=paused?'▶ RESUME':'Ⅱ PAUSE';last=performance.now()}\n $('pauseBtn').addEventListener('click',()=>togglePause());$('resumeBtn').addEventListener('click',()=>togglePause(false));$('restartBtn').addEventListener('click',()=>{resetCar();togglePause(false)});\n function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
+function togglePause(force){paused=typeof force==='boolean'?force:!paused;for(const k in key)key[k]=false;$('pauseOverlay').classList.toggle('hidden',!paused);$('pauseBtn').textContent=paused?'▶ RESUME':'Ⅱ PAUSE';last=performance.now()}
+ $('pauseBtn').addEventListener('click',()=>togglePause());$('resumeBtn').addEventListener('click',()=>togglePause(false));$('restartBtn').addEventListener('click',()=>{resetCar();togglePause(false)});
+ function toast(){ $('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1000)}
 $('start').onclick=()=>{$('intro').classList.add('hidden');$('pauseBtn').classList.remove('hidden');started=true;last=performance.now()};
 function animate(now){requestAnimationFrame(animate);const rawDt=(now-last)/1000;const dt=Math.min(rawDt,.033);last=now;if(started&&!paused){frameTotal+=rawDt;frameSamples++;qualityClock+=rawDt;if(qualityClock>=1.25){const avg=frameTotal/Math.max(1,frameSamples);const minScale=lowPower?.62:.82,maxScale=lowPower?1:1.5;if(avg>.024&&renderScale>minScale)renderScale=Math.max(minScale,renderScale-.08);else if(avg<.018&&renderScale<maxScale)renderScale=Math.min(maxScale,renderScale+.035);renderer.setPixelRatio(renderScale);qualityClock=0;frameTotal=0;frameSamples=0;}
   // Vehicle dynamics: throttle, service braking, rolling resistance, aero drag,
