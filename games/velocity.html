@@ -121,6 +121,33 @@ for(const x of [-.66,.66]){
  box(car,.44,.07,.11,tailMat,x,.49,2.10);
  const intake=box(car,.28,.18,.08,carbon,x,.40,-2.12);
 }
+// Sculpted wheel-arch lips, forged aero details and illuminated lower body.
+const archMat=new THREE.MeshPhysicalMaterial({color:0x0a1820,metalness:.72,roughness:.24,clearcoat:.8});
+for(const x of [-1,1])for(const z of [-1.38,1.38]){
+ const arch=new THREE.Mesh(new THREE.TorusGeometry(.49,.075,10,48),archMat);
+ arch.rotation.y=Math.PI/2;arch.position.set(x*1.005,.43,z);arch.scale.set(1,1.03,1);arch.castShadow=true;car.add(arch);
+ const inner=new THREE.Mesh(new THREE.TorusGeometry(.425,.025,8,40),alloy);
+ inner.rotation.y=Math.PI/2;inner.position.set(x*1.012,.43,z);car.add(inner);
+}
+// Front corner aero canards and deep intake blades.
+for(const x of [-.84,.84]){
+ box(car,.36,.075,.48,carbon,x,.27,-2.12,0,0,x*.14);
+ box(car,.055,.19,.38,alloy,x,.38,-1.91,0,0,x*.12);
+ for(let j=0;j<3;j++)box(car,.045,.035,.32,alloy,x,.34+j*.065,1.48,0,0,x*.08);
+}
+// Rear diffuser strakes and exhaust outlets.
+for(const x of [-.68,-.34,0,.34,.68]){
+ const fin=box(car,.045,.22,.55,carbon,x,.16,2.02,.08);
+ fin.castShadow=true;
+}
+for(const x of [-.62,.62]){
+ const exhaust=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.18,16),alloy);
+ exhaust.rotation.x=Math.PI/2;exhaust.position.set(x,.31,2.17);car.add(exhaust);
+ const core=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.19,12),carbon);
+ core.rotation.x=Math.PI/2;core.position.set(x,.31,2.18);car.add(core);
+}
+// A subtle cyan underbody light is visible at night-like shaded areas, not a solid neon strip.
+const underGlow=new THREE.PointLight(0x23cfff,1.6,4.5,2);underGlow.position.set(0,.16,0);car.add(underGlow);
 // Cockpit windshield highlights and roof center spine.
 box(car,.035,.035,1.25,alloy,0,1.33,-.02);
 for(const x of [-.48,.48])box(car,.035,.025,1.25,carbon,x,1.24,-.02,0,0,x*.08);
