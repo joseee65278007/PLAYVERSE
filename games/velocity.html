@@ -129,7 +129,7 @@ car.position.set(0,0,4);
 // until the separately authored Project One GT is exported and hosted reliably.
 let vehicleMixer=null;
 let vehicleAnimations=[];
-$('vehicleStatus').textContent='BUILT-IN PROTOTYPE CAR · READY';
+document.getElementById('vehicleStatus').textContent='BUILT-IN PROTOTYPE CAR · READY';
 // Crash sparks: brief particle bursts on strong impacts, with a small reusable pool.
 const sparks=[];const sparkGeo=new THREE.SphereGeometry(.035,6,5);const sparkMat=new THREE.MeshBasicMaterial({color:0xffbd63});
 for(let i=0;i<36;i++){const m=new THREE.Mesh(sparkGeo,sparkMat);m.visible=false;scene.add(m);sparks.push({mesh:m,vel:new THREE.Vector3(),life:0})}
