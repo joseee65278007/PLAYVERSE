@@ -33,7 +33,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/loaders/GLTFLoader.js';
 import {RoomEnvironment} from 'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/environments/RoomEnvironment.js';
 const root=document.getElementById('game');
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x91b9c5);scene.fog=new THREE.FogExp2(0x91b9c5,.0037);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x91b9c5);scene.fog=new THREE.FogExp2(0x9ccbd8,.00165);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,1800);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 const lowPower=(navigator.hardwareConcurrency||4)<=4||(navigator.deviceMemory||4)<=4;let renderScale=lowPower?Math.min(devicePixelRatio,.85):Math.min(devicePixelRatio,1.35);renderer.setPixelRatio(renderScale);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!lowPower;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=!lowPower;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.domElement.style.imageRendering='auto';root.appendChild(renderer.domElement);
@@ -50,13 +50,26 @@ const roadMat=new THREE.MeshStandardMaterial({map:asphalt,color:0xffffff,roughne
 const road=new THREE.Mesh(new THREE.PlaneGeometry(18,3600),roadMat);road.rotation.x=-Math.PI/2;road.position.y=-.08;road.receiveShadow=true;scene.add(road);
 const lineMat=mat(0xe8e5d6,.7);for(const x of [-8.55,8.55]){const l=new THREE.Mesh(new THREE.BoxGeometry(.13,.025,3600),lineMat);l.position.set(x,-.045,0);scene.add(l)}
 const dashMat=mat(0xe9e6d7);for(let z=-1780;z<1780;z+=18){const d=new THREE.Mesh(new THREE.BoxGeometry(.13,.025,8),dashMat);d.position.set(0,-.04,z);scene.add(d)}
-// Distant coastal hills and low-rise skyline silhouettes.
-for(let i=0;i<22;i++){const h=10+Math.random()*27,w=18+Math.random()*30;const hill=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),mat(i%2?0x657d6c:0x778c77));hill.position.set((Math.random()<.5?-1:1)*(55+Math.random()*95),h/2-2,-90-Math.random()*1650);hill.scale.set(w,h/2,w*1.8);scene.add(hill)}
-const buildingMats=[0x66777a,0x8b9993,0x58666b,0xa7a99c].map(c=>mat(c,.9));
-for(let i=0;i<65;i++){const side=Math.random()<.5?-1:1,w=5+Math.random()*10,h=7+Math.random()*27,b=new THREE.Mesh(new THREE.BoxGeometry(w,h,w*.75),buildingMats[i%buildingMats.length]);b.position.set(side*(22+Math.random()*55),h/2-0.1,-30-Math.random()*1750);b.castShadow=true;scene.add(b)}
-const trunk=mat(0x574534),leaf=mat(0x416344);for(let i=0;i<70;i++){const side=Math.random()<.5?-1:1,z=-Math.random()*1750;const x=side*(13+Math.random()*22);const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.24,2.4,6),trunk);t.position.set(x,1.1,z);scene.add(t);const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7+Math.random()*1.2,1),leaf);crown.position.set(x,3.2,z);crown.scale.y=1.25;scene.add(crown)}
-// Roadside barriers.
-const barrierMat=mat(0xb9c1bd,.48,.35);for(const x of [-9.5,9.5]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.28,.65,3600),barrierMat);rail.position.set(x,.3,0);rail.castShadow=true;scene.add(rail);for(let z=-1780;z<1780;z+=24){const post=new THREE.Mesh(new THREE.BoxGeometry(.32,1.1,.32),barrierMat);post.position.set(x,-.15,z);scene.add(post)}}
+// PURPOSE-BUILT COASTLINE RUN ENVIRONMENT — ocean, beach, cliffs and road furniture.
+scene.background=new THREE.Color(0x9ccbd8);
+scene.fog=new THREE.FogExp2(0x9ccbd8,.00165);
+const oceanMat=new THREE.MeshPhysicalMaterial({color:0x176b83,roughness:.23,metalness:.18,clearcoat:.9,clearcoatRoughness:.12});
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(190,3600,1,120),oceanMat);
+ocean.rotation.x=-Math.PI/2;ocean.position.set(-133,-.28,-850);scene.add(ocean);
+// Subtle repeating wave ridges catch the sun beside the highway.
+const waveMat=new THREE.MeshStandardMaterial({color:0x5bb0bd,roughness:.35,metalness:.12,transparent:true,opacity:.34});
+for(let i=0;i<34;i++){const wave=new THREE.Mesh(new THREE.BoxGeometry(95,.018,.11+Math.random()*.16),waveMat);wave.position.set(-135,-.20,-i*54-18);wave.rotation.y=(Math.random()-.5)*.035;scene.add(wave)}
+const sandMat=mat(0xc6b58d,.98),cliffMat=[0x8d806b,0x9d9077,0x766f61,0xb0a084].map(c=>mat(c,.94));
+const beach=new THREE.Mesh(new THREE.PlaneGeometry(45,3600),sandMat);beach.rotation.x=-Math.PI/2;beach.position.set(-26,-.13,-850);scene.add(beach);
+// Layered headlands on the inland side create a recognizable coastal silhouette.
+for(let i=0;i<58;i++){const z=-i*31-22;const x=37+Math.random()*28;const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),cliffMat[i%cliffMat.length]);rock.position.set(x,4+Math.random()*12,z);rock.scale.set(7+Math.random()*13,8+Math.random()*19,17+Math.random()*22);rock.rotation.set(Math.random()*.18,Math.random()*.4,Math.random()*.12);rock.castShadow=true;scene.add(rock)}
+// Palm trees and coastal scrub on the beach side.
+const palmTrunk=mat(0x765638,.9),palmLeaf=mat(0x356b4b,.82);
+for(let i=0;i<42;i++){const x=-42-Math.random()*10,z=-i*43-18,h=5+Math.random()*3;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13,.23,h,8),palmTrunk);trunk.position.set(x,h/2,z);trunk.rotation.z=(Math.random()-.5)*.12;trunk.castShadow=true;scene.add(trunk);const crown=new THREE.Group();crown.position.set(x,h,z);for(let j=0;j<7;j++){const frond=new THREE.Mesh(new THREE.ConeGeometry(.18,3.5,5),palmLeaf);frond.position.set(Math.cos(j*Math.PI*2/7)*1.35,-.25,Math.sin(j*Math.PI*2/7)*1.35);frond.rotation.z=-Math.PI/2+Math.cos(j*Math.PI*2/7)*.65;frond.rotation.x=Math.sin(j*Math.PI*2/7)*.55;crown.add(frond)}scene.add(crown)}
+// Coastal road furniture: reflective posts, overhead lamps and distance markers.
+const poleMat=mat(0x39464a,.42,.72),lampMat=new THREE.MeshStandardMaterial({color:0xfff4d6,emissive:0xffd99a,emissiveIntensity:1.15});
+for(const side of [-1,1])for(let z=-40;z>-1720;z-=92){const x=side*12.3;const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.11,7,8),poleMat);pole.position.set(x,3.5,z);scene.add(pole);const arm=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,.08),poleMat);arm.position.set(x-side*1,6.8,z);scene.add(arm);const lamp=new THREE.Mesh(new THREE.BoxGeometry(.55,.12,.34),lampMat);lamp.position.set(x-side*2,6.72,z);scene.add(lamp)}
+const markerMat=mat(0xf4f0d8,.55,.15);for(const side of [-1,1])for(let z=-25;z>-1760;z-=36){const marker=new THREE.Mesh(new THREE.BoxGeometry(.12,.72,.12),markerMat);marker.position.set(side*10.8,.35,z);scene.add(marker)}
 // Original sculpted supercar: tapered body, low canopy, aero details and performance wheels.
 const car=new THREE.Group();scene.add(car);
 const paint=new THREE.MeshPhysicalMaterial({color:0x087f9d,metalness:.82,roughness:.19,clearcoat:1,clearcoatRoughness:.075,envMapIntensity:1.4});
