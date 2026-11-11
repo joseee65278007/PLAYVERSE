@@ -58,6 +58,6 @@ if(ball.vy>0&&ball.y+ball.r>=paddle.y&&ball.y-ball.r<paddle.y+paddle.h&&ball.x>=
 for(const b of bricks){if(!b.alive)continue;if(ball.x+ball.r>b.x&&ball.x-ball.r<b.x+b.w&&ball.y+ball.r>b.y&&ball.y-ball.r<b.y+b.h){b.hp--;ball.vy*=-1;if(b.hp<=0){b.alive=false;for(let n=0;n<12;n++)shards.push({x:b.x+b.w/2,y:b.y+b.h/2,vx:(Math.random()-.5)*8,vy:(Math.random()-.8)*7,life:28,rot:Math.random()*6,size:3+Math.random()*5,color:'hsl('+b.hue+' 85% 68%)'});score+=100;roundCoins++;$('score').textContent=score}else score+=30;break}}
 if(ball.y>620){lives--;updateStats();if(lives<=0)end(false);else resetBall()}
 if(bricks.every(b=>!b.alive))end(true)}}draw()}
-maxLevel=getSaved();level=1;coins=Playverse.balance();updateStats();updateTrack();makeBricks();resetBall();draw();tick();
+maxLevel=getSaved();level=maxLevel;coins=Playverse.balance();updateStats();updateTrack();makeBricks();resetBall();draw();tick();
 window.addEventListener('playverse:change',()=>{coins=Playverse.balance();$('coins').textContent=coins;applyCosmetics()});
 </script></body></html>
