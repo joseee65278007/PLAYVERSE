@@ -6,7 +6,10 @@ const items=[
 {id:'sunset-paddle',name:'Sunset Paddle',kind:'paddle',price:180,description:'A warm orange and pink paddle skin.'},
 {id:'prism-ball',name:'Prism Ball',kind:'ball',price:150,description:'A colorful ball trail for Pixel Foundry.'},
 {id:'star-trail',name:'Starlight Trail',kind:'trail',price:220,description:'A glowing trail for your Starfall ship.'},
-{id:'foundry-2',name:'Foundry Level Pack 2',kind:'unlock',price:250,description:'Unlock the next challenge pack early.'}
+{id:'foundry-2',name:'Foundry Level Pack 2',kind:'unlock',price:250,description:'Unlock the next challenge pack early.'},
+{id:'midnight-paddle',name:'Midnight Pulse Paddle',kind:'paddle',price:300,description:'A violet pulse skin for Pixel Foundry.'},
+{id:'comet-ball',name:'Comet Core',kind:'ball',price:280,description:'A bright comet-white ball skin for Pixel Foundry.'},
+{id:'foundry-elite',name:'Foundry Elite Pack',kind:'unlock',price:650,description:'A special Foundry reward pack for dedicated players.'}
 ];
 const read=()=>{try{return JSON.parse(localStorage.getItem(USERS)||'{}')}catch{return {}}};
 const write=x=>localStorage.setItem(USERS,JSON.stringify(x));
