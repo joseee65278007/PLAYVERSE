@@ -22,7 +22,7 @@ const MAX_LEVEL=12;let paddle={x:420,y:550,w:120,h:14},ball={x:480,y:525,vx:0,vy
 function getSaved(){const p=Playverse.profile(),progress=p?Playverse.getProgress('pixel-foundry'):{};return Math.max(1,Math.min(MAX_LEVEL,Number(progress.unlockedLevel||localStorage.getItem('pfUnlocked')||1)))}
 function updateStats(){$('best').textContent=best;$('coins').textContent=Playverse.balance();$('level').textContent=level+' / '+MAX_LEVEL;$('lives').textContent=lives}
 function updateTrack(){const root=$('levelTrack');root.innerHTML='';for(let i=1;i<=MAX_LEVEL;i++){const b=document.createElement('button');b.textContent='LEVEL '+i;b.disabled=i>maxLevel;b.style.cssText='border:1px solid '+(i===level?'#c7fa72':'#3b4a3d')+';background:'+(i===level?'#c7fa72':'#121a14')+';color:'+(i===level?'#11170c':'#c8d4ca')+';padding:8px 11px;border-radius:8px;font-size:10px;font-weight:900;cursor:pointer;opacity:'+(i>maxLevel?'.35':'1');b.onclick=()=>{if(i<=maxLevel){level=i;start(false)}};root.appendChild(b)}}
-function applyCosmetics(){const p=Playverse.profile(),eq=p?.equipped||{};skinPaddle=eq.paddle==='mint-paddle'?'#8bffd5':eq.paddle==='sunset-paddle'?'#ff9a69':'#c7fa72';skinBall=eq.ball==='prism-ball'?'#f3a7ff':'#eaffff'}
+function applyCosmetics(){const p=Playverse.profile(),eq=p?.equipped||{};skinPaddle=eq.paddle==='mint-paddle'?'#8bffd5':eq.paddle==='sunset-paddle'?'#ff9a69':eq.paddle==='midnight-paddle'?'#b68cff':'#c7fa72';skinBall=eq.ball==='prism-ball'?'#f3a7ff':eq.ball==='comet-ball'?'#9eeeff':'#eaffff'}
 function makeBricks(){bricks=[];const rows=4+Math.min(3,Math.floor((level-1)/2)),cols=10,gap=10,w=78,h=24,startX=(960-(cols*w+(cols-1)*gap))/2;
 for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){let active=true,hp=1;
 if(level===2)hp=(row+col)%3===0?2:1;
