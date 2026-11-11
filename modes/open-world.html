@@ -38,7 +38,7 @@ const cityPickups=[];let cityCoinTotal=Playverse.balance(),cityCollected=0;
 for(let i=0;i<14;i++){const pickup=new THREE.Group();const disk=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.12,20),coinMaterial);disk.rotation.x=Math.PI/2;pickup.add(disk);const ring=new THREE.Mesh(new THREE.TorusGeometry(.4,.055,8,24),coinRingMaterial);pickup.add(ring);const a=i*2.399,r=5+(i%4)*3;pickup.position.set(Math.cos(a)*r,1.05,Math.sin(a)*r);scene.add(pickup);cityPickups.push(pickup)}
 const key={};addEventListener('keydown',e=>{key[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact()});addEventListener('keyup',e=>key[e.code]=false);
 let started=false,playerName='Guest',last=performance.now(),near=null;
-const $=id=>document.getElementById(id);
+const $=id=>document.getElementById(id);if(Playverse.profile())$('username').value=Playverse.profile().username;
 const blocked=['admin','moderator','fuck','shit','bitch','asshole','nigger','nigga','cunt','porn','sex','dick','penis'];
 function validName(v){return /^[A-Za-z0-9_]{3,16}$/.test(v)&&!blocked.some(w=>v.toLowerCase().includes(w))}
 $('enter').onclick=()=>{const v=$('username').value.trim();if(!validName(v)){show('Use 3–16 letters, numbers or underscores. That name is unavailable.');return}playerName=Playverse.profile()?.username||v;$('playerLabel').textContent=playerName;cityCoinTotal=Playverse.balance();$('cityCoins').textContent=cityCoinTotal;$('welcome').classList.add('hidden');started=true;last=performance.now()};
